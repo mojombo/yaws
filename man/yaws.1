@@ -1,0 +1,165 @@
+.TH YAWS "1" "" "" "User Commands"
+.SH NAME
+yaws \- yet another webserver
+.SH SYNOPSIS
+.B yaws
+[\fIOPTIONS\fR] 
+.SH DESCRIPTION
+.\" Add any additional description here
+.PP
+Yaws is fast lightweight webserver. It can run as daemon or
+in interactive mode where it is possible to directly interact 
+with the webserver. Yaws is particularly good at generating
+dynamic content. See the user docs for more information on that topic.
+
+.SH DEAMON/SERVER options
+
+
+.TP
+\fB\-i | --interactive\fR
+Interactive mode. This will start yaws in interactive mode with an erlang
+prompt. All error_logger messages will be written to the tty as well in this
+mode. Use this when developing yaws code.
+.TP
+\fB\-w | --winteractive\fR
+Cygwin inteactive mode (werl)
+\fB\--daemon\fR
+Daemon mode. This will start yaws as a daemon.
+.TP
+\fB\--heart\fR
+This will cause the yaws system to be automatically restarted
+in case it should crash. This switch also require the \fI--daemon\fR
+switch to be present.
+.TP
+\fB\--debug\fR
+Debug mode. This will produce some auxilliary error output for some
+error conditions. It will also start the otp sasl lib for additional
+error printouts.
+
+.TP
+\fB\--conf file\fR
+Use a different configuration file than the default. The default configuration file
+when running as root is /etc/yaws.conf. When running as a non priviliged user, yaws
+will search for its configuration file in the following order. First in
+$HOME/yaws.conf, then in ./yaws.conf and finally in /etc/yaws.conf
+.TP
+\fB\--runmod module\fR
+Tells yaws to call \fImodule:start/0\fR at startup. This makes it possible
+to startup user specific applications together with yaws.
+
+.TP
+\fB\--pa path\fR
+Add path to the yaws system search path
+
+.TP
+\fB\--tracetraf\fR
+Traffic trace mode. All traffic will be written to a trace file called trace.traffic
+in the log directory.
+
+.TP
+\fB\--tracehttp\fR
+HTTP trace mode. All HTTP messages will be written to a trace file called trace.http
+in the log directory.
+
+.TP
+\fB\--traceout\fR
+When yaws is put into trace mode using either --tracetraf or --tracehttp, traces are written to files. If we provide the --traceout flag, the trace will also be written to stdout. 
+
+.TP
+\fB\--trace\fR
+Sames as --tracetraf --traceout. I.e. trace everything and write to stdout.
+
+.TP
+\fB\--mnesiadir dir\fR
+Start Mnesia in directory <dir>
+
+.TP
+\fB\--sname xxx\fR
+Start yaws as a distributed erlang node with name <xxx>
+using the unqualified hostname as nodename postfix
+
+.TP
+\fB\--name xxx\fR
+Start yaws as a distributed erlang node with name <xxx> using the
+fully qualified hostname as nodename postfix
+
+.TP
+\fB\--proto_dist Mod\fR
+Use module Mod for erlang distribution. This is typically only used
+when we want to run erlang distribution over SSL.
+
+.TP
+\fB\--erlarg STRING\fR
+Pass STRING as an additional argument to the "erl" program.
+
+
+.TP
+\fB\--id ID\fR
+This flag sets the id. If we're starting a daemon (or an interactive 
+system) it gives the Yaws server the identity ID. This means that the 
+server will write all internal files into the directory
+$HOME/.yaws/ID. 
+
+Yaws also creates a file called 
+${VARDIR}/run/yaws/ctl-${ID} which contains the portnumber the daemon
+is listening on for control request by the control command such
+as "yaws --hup" etc.
+
+If we're invoking a control command which should perform some
+control function on the daemon, we may have to give the --id flag also
+to the control command. If we don't do this the control command 
+may interact with the wrong daemon due to finding the wrong "ctl" file.
+
+The daemon may also optionally specify the "id" in the yaws.conf
+configuration file.
+
+.SH CONTROL OPTIONS
+.PP
+The following list of options are are used to control the daemon
+from the "outside" while it is running.
+
+.TP
+\fB\--hup [--id ID]\fR
+HUP the daemon. This forces the daemon to reread the configuration file. 
+It also makes
+the daemon empty all its internal content caches. 
+Hence when updating the doc root,
+HUPing the daemon is the fastest way to see the content updates. 
+.TP
+\fB\--stop [-I id]\fR
+Stop the daemon (called id)
+.TP
+\fB\--ls \fR
+Lists current ids and status of all yaws servers on localhost. In practice this
+amounts to a listdir in $HOME/.yaws/yaws - and check wether the different
+systems who has created files there are alive.
+.TP
+\fB--status [-I id]\fR
+Query a running yaws daemon for its status, and print it.
+.TP
+\fB--load Modules [-I id]\fR 
+Try to (re)load erlang modules into a running daemon.  This is useful
+after modifying appmods or modules used by scripts.
+
+.TP
+\fB--ctltrace [--id ID] http | traffic | off\fR
+Control the trace capabilities of a running yaws daemon. If the
+http or traffic option is given, the daemon will write a log
+for debug purposes into the logdir.
+
+
+.SH MISC OPTIONS
+
+.TP
+\fB--check YawsFile [IncDirs ....]\fR
+Test compile a `.yaws' file. Useful in Makefiles when we want to ensure
+that all .yaws files are syntactically correct
+.TP
+\fB\--version\fR
+output version information and exit
+.SH AUTHOR
+Written by Claes Wikstrom
+.SH "SEE ALSO"
+.BR yaws.conf (5)
+.BR erl (1)
+

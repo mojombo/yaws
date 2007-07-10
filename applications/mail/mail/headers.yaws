@@ -1,0 +1,12 @@
+<erl>
+
+out(A) ->
+    case mail:check_session(A) of
+	{ok, Session} ->
+	    {ok, Nr} = queryvar(A, "nr"),
+	    mail:showheaders(Session, list_to_integer(Nr));
+	Error ->
+	    Error
+    end.
+
+</erl>

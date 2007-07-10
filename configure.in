@@ -1,0 +1,228 @@
+DNA define([AC_CACHE_LOAD], )dnl
+dnl define([AC_CACHE_SAVE], )dnl
+
+AC_INIT(Makefile)
+
+
+dnl work out who the cpu, vendor and OS are
+AC_CANONICAL_SYSTEM
+AC_DEFINE_UNQUOTED(CPU_VENDOR_OS, "$target")
+
+AC_PATH_PROG(ERL, erl)
+AC_PATH_PROG(ERLC, erlc)
+ERLBINDIR=`dirname $ERL` ; ERLBINDIR=`dirname $ERLBINDIR`/lib/erlang/bin
+
+AC_SUBST(ERL)
+AC_SUBST(ERLC)
+
+AC_SUBST(ERLBINDIR)
+
+AC_ARG_WITH(default-charset,
+[  --with-defaultcharset=String   specify default charset, i.e UTF-8 ])
+
+
+if test "x$with_defaultcharset" = "x" ; then
+   DEFAULT_CHARSET=
+else
+   DEFAULT_CHARSET=${with_defaultcharset}
+fi
+
+AC_SUBST(DEFAULT_CHARSET)
+
+
+
+AC_ARG_WITH(extrainclude,
+[  --with-extrainclude= dir to include if e.g. pam is installed in some odd place ])
+
+
+if test "x$with_extrainclude" = "x" ; then
+   EXTRAINCLUDE=
+else
+   EXTRAINCLUDE=-I${with_extrainclude}
+fi
+
+AC_SUBST(EXTRAINCLUDE)
+
+
+
+AC_ARG_ENABLE(pam, [--disable-pam disables pam auth], EPAM=, EPAM=../priv/epam)
+AC_SUBST(EPAM)
+
+
+
+dnl ----------------------------------------------------------------------
+dnl
+dnl BT_ERL_LIB_VSN figures out version of an erlang application
+dnl and substitutes it as "APPNAME"_VSN
+dnl
+
+AC_DEFUN(BT_ERL_LIB_VSN,
+[
+    AC_MSG_CHECKING([$1 version])
+    AC_CACHE_VAL(bt_cv_$1_vsn,
+    [bt_cv_$1_vsn="`ls ${ERLDIR} ${ERLDIR}/lib | \
+                   awk -F- '/^$1-/ { if ([$]2 > v) v=[$]2; }
+                            END    { print v; }'`"
+     case "$bt_cv_$1_vsn" in
+         "")
+             AC_MSG_ERROR("Could not figure out version Erlang library: $1")
+             ;;
+         *)
+             ;;
+     esac])
+    translit($1, [a-z], [A-Z])_VSN=$bt_cv_$1_vsn
+    AC_SUBST(translit($1, [a-z], [A-Z])_VSN)dnl
+    AC_MSG_RESULT($bt_cv_$1_vsn)
+])dnl
+
+
+dnl 
+dnl I keep the cugwin dll code in case I later learn how to
+dnl compile a linked in driver on windows using gcc
+dnl
+
+case "$target_os" in
+	*cygwin*)
+
+
+           ERLDIR=`echo "${ERL}" | sed 's/\/bin\/*erl.*//'`
+           ERL_DLL_LIB="${ERLDIR}/usr/lib/erl_dll.lib"
+           AC_SUBST(ERL_DLL_LIB)
+	;;
+	*)	
+    	  ERLDIR=`awk -F= '/ROOTDIR=/ { print [$]2; exit; }' $ERL`;;
+    esac
+
+if test ! -d "$ERLDIR" ; then
+	AC_MSG_ERROR([Broken Erlang installation, $ERLDIR does not exist!])
+fi
+AC_SUBST(ERLDIR)
+AC_SUBST(ERL_DLL_LIB)
+
+AC_PROG_CC
+AC_PROG_GCC_TRADITIONAL
+
+
+dnl ===============================================================
+dnl Checks for programs.
+dnl ===============================================================
+
+
+
+dnl
+dnl cygwin code here is broken and not used ....
+dnl
+
+
+case "$target_os" in
+     *cygwin*)
+        WIN32=win32
+	    cat >> confdefs.h <<\EOF
+#define WIN32 1
+EOF
+	    LD_SHARED="gcc -shared"
+	    DLL=dll
+	    DLL_LIBS="-lc \"$ERL_DLL_LIB\""
+	
+
+	EXE=.exe
+	AC_SUBST(EXE)
+
+	DLL=dll
+	AC_SUBST(DLL)
+
+	OBJ=obj
+	AC_SUBST(OBJ)
+	;;
+      *)
+
+
+	LINKER=$CC
+	AC_SUBST(LINKER)
+
+	AC_SUBST(CFLAGS)
+
+	OUT="-o "
+	AC_SUBST(OUT)
+
+	DLL=so
+	AC_SUBST(DLL)
+	OBJ=o
+	AC_SUBST(OBJ)
+
+
+	;;
+esac
+
+
+AC_SUBST(DLL_LIBS)
+
+AC_PROG_MAKE_SET
+AC_PROG_INSTALL
+
+
+dnl Sigh, pam headers do not seem to have a standard place. On FreeBSD and
+dnl Linuces I've seen they are in /usr/include/security, but MacOS has them
+dnl in /usr/include/pam... I'm to sick of M4 at this very moment to write
+dnl a test that searches for the files, so hard coded for now...
+dnl or use --with-extrainclude=....
+CFLAGS="$CFLAGS -I/usr/include/security"
+
+case "$target_os" in
+	*linux*)
+	   AC_DEFINE(LINUX)
+	   LD_SHARED="gcc -shared"
+	   AC_SUBST(LD_SHARED)
+	   FPIC=-fpic
+	   AC_SUBST(FPIC)
+	   ;;
+
+	*solaris*)
+	   AC_DEFINE(SOLARIS)
+	   LD_SHARED="ld -G"
+	   AC_SUBST(LD_SHARED)
+	   LIBS="$LIBS -lsocket -lnsl -lresolv"
+	   AC_SUBST(LIBS)
+	   FPIC=-fpic
+	   AC_SUBST(FPIC)
+	   ;;
+
+	*bsd*)
+	   AC_DEFINE(BSD)
+	   case "$target_os" in
+		bsdi*)
+                    BSDI=bsdi
+		    AC_DEFINE(BSDI)
+		    AC_SUBST(BSDI)
+		    ;;
+	   esac
+	   LD_SHARED="ld -Bshareable"	  
+	   AC_SUBST(LD_SHARED)
+	   FPIC=-fpic
+	   AC_SUBST(FPIC)
+	   ;;
+	 *darwin*)
+	   CFLAGS="$CFLAGS -I/usr/include/pam"
+	   LD_SHARED="gcc -bundle -fPIC -flat_namespace -undefined suppress"
+   	   AC_SUBST(LD_SHARED)
+	   FPIC=-fPIC
+	   AC_SUBST(FPIC)
+	   ;;
+	 *cygwin*)
+	   AC_PATH_PROG(WERL, werl)
+	   AC_SUBST(WERL)
+	   AC_DEFINE(WIN32)
+	   FPIC=-fpic
+	   AC_SUBST(FPIC)
+	   AC_SUBST(WIN32)
+	   ;;
+	*)
+           AC_MSG_RESULT(unknown)
+	   AC_MSG_ERROR(Non-supported target OS!)
+	   ;;
+esac
+
+
+
+AC_OUTPUT(include.mk)
+

@@ -1,0 +1,3 @@
+<erl>
+	out(_) -> {html, "XXXX"}.
+</erl>
