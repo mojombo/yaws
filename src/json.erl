@@ -101,6 +101,7 @@ encode(true) -> "true";
 encode(false) -> "false";
 encode(null) -> "null";
 encode(I) when is_integer(I) -> integer_to_list(I);
+encode(B) when is_binary(B) -> binary_to_list(B);
 encode(F) when is_float(F) -> io_lib:format("~g", [F]);
 encode(L) when is_list(L) ->
     case is_string(L) of
@@ -110,6 +111,7 @@ encode(L) when is_list(L) ->
     end;
 encode({array, Props}) when is_list(Props) -> encode_array(Props);
 encode({struct, Props} = T) when is_list(Props) -> encode_object(T);
+encode({binary, Bin}) when is_binary(Bin) -> binary_to_list(Bin);
 encode(Bad) -> exit({json_encode, {bad_term, Bad}}).
 
 %% Encode an Erlang string to JSON.
