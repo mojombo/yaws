@@ -201,18 +201,26 @@ send(_Args, StatusCode, Payload, AddOnData) ->
     A
      . % }}}
 
-encode_handler_payload({response, [ErlStruct]},ID) ->   % {{{
-    encode_handler_payload({response, ErlStruct}, ID);
+encode_handler_payload({result, [ErlStruct]},ID) ->   % {{{
+    encode_handler_payload({result, ErlStruct}, ID);
     
-encode_handler_payload({response, ErlStruct},ID) ->  
-    StructStr = json:encode({struct, [ {result, ErlStruct}, {id, ID}]}),
+encode_handler_payload({result, ErlStruct},ID) ->  
+    StructStr = json:encode({struct, [ {result, ErlStruct}, {error, null}, {id, case ID of undefined -> ""; Defined -> Defined end}]}),
+    {ok, StructStr};
+    
+encode_handler_payload({error, [ErlStruct]},ID) ->   % {{{
+    encode_handler_payload({error, ErlStruct}, ID);
+    
+encode_handler_payload({error, ErlStruct},ID) ->  
+    StructStr = json:encode({struct, [ {result, null}, {error, ErlStruct}, {id, case ID of undefined -> ""; Defined -> Defined end}]}),
     {ok, StructStr}.  % }}}
+
       
 decode_handler_payload(JSonStr) -> %{{{
     try 
         {ok, JSON} = json:decode_string(JSonStr),
         Method = list_to_atom(jsonrpc:s(JSON, method)),
-        {array, Args} = jsonrpc:s(JSON, params),
+        {_Kind, Args} = jsonrpc:s(JSON, params),
         ID = jsonrpc:s(JSON, id),
 
         {ok, {call, Method, Args}, ID}
